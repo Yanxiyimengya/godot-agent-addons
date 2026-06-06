@@ -1,0 +1,38 @@
+[gd_scene format=3 uid="uid://h86vuqcgoqb3"]
+
+[ext_resource type="Script" uid="uid://dxm5va7agjear" path="res://tests/agent_session_test.gd" id="1_agent_session_test"]
+
+[node name="AgentSessionTest" type="Control" unique_id=1055654956]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+script = ExtResource("1_agent_session_test")
+
+[node name="Button" type="Button" parent="." unique_id=907905911]
+layout_mode = 0
+offset_left = 803.0
+offset_top = 508.0
+offset_right = 1100.0
+offset_bottom = 606.0
+text = "发送"
+
+[node name="TextEdit" type="TextEdit" parent="." unique_id=569501642]
+layout_mode = 0
+offset_left = 675.0
+offset_top = 27.0
+offset_right = 1125.0
+offset_bottom = 469.0
+
+[node name="Label" type="RichTextLabel" parent="." unique_id=1294936635]
+layout_mode = 0
+offset_left = 7.0
+offset_top = 8.0
+offset_right = 666.67303
+offset_bottom = 636.0
+mouse_filter = 2
+bbcode_enabled = true
+
+[connection signal="pressed" from="Button" to="." method="_on_button_pressed"]
