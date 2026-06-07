@@ -36,11 +36,12 @@ func generate_header(config : AgentConfig) -> PackedStringArray:
 	return headers;
 
 func generate_context_request(context : AgentContext) -> Dictionary:
-	return _generate_request(
+	var _req : Dictionary = _generate_request(
 		context.config,
 		_generate_messages(context.config.system_prompt, context.get_request_messages()),
 		_generate_tools(context)
 	);
+	return _req;
 
 func generate_compression_request(
 	config : AgentConfig,
@@ -154,6 +155,8 @@ func update_stream(ms : AgentAssistantMessageStream, json : Dictionary) -> void:
 			ms.content += delta["content"];
 		if (delta.has("reasoning_content") && typeof(delta["reasoning_content"]) == TYPE_STRING) :
 			ms.reasoning += delta["reasoning_content"];
+		elif (delta.has("reasoning") && typeof(delta["reasoning"]) == TYPE_STRING) :
+			ms.reasoning += delta["reasoning"];
 		if (delta.has("tool_calls") && typeof(delta["tool_calls"]) == TYPE_ARRAY) :
 			_update_stream_tool_calls(ms, delta["tool_calls"]);
 
@@ -273,6 +276,7 @@ func _phrase_message(dict : Dictionary) -> AgentAssistantMessage:
 	var msg : AgentAssistantMessage = AgentAssistantMessage.new();
 	if (dict.has("content") && dict["content"] != null) : msg.content = str(dict["content"]);
 	if (dict.has("reasoning_content") && typeof(dict["reasoning_content"]) == TYPE_STRING) : msg.reasoning = dict["reasoning_content"];
+	elif (dict.has("reasoning") && typeof(dict["reasoning"]) == TYPE_STRING) : msg.reasoning = dict["reasoning"];
 	if (dict.has("tool_calls") && typeof(dict["tool_calls"]) == TYPE_ARRAY) :
 		for tool_call_data : Variant in dict["tool_calls"] :
 			if (typeof(tool_call_data) != TYPE_DICTIONARY) : continue;
@@ -351,23 +355,52 @@ func _get_dictionary(source : Dictionary, key : String) -> Dictionary:
 	if (source.has(key) && typeof(source[key]) == TYPE_DICTIONARY) : return source[key];
 	return {};
 
-func _estimate_text_tokens(text : String) -> int:
-	const CHINESE_COEFF = 2.0;
-	const ASCII_PER_TOKEN = 3.5;
+## 估计Toeken，很原始
+func _estimate_text_tokens(text: String) -> int:
+	const ASCII_PER_TOKEN : int = 3.5;
 	var ascii_run : int = 0;
 	var tokens : int = 0;
-	for index : int in range(text.length()) :
-		var code : int = text.unicode_at(index);
+
+	for i in range(text.length()):
+		var code : int = text.unicode_at(i);
+		
 		if (code < 128) :
 			ascii_run += 1;
 			continue;
-		if (ascii_run > 0) :
-			tokens += int(ceil(float(ascii_run)/ASCII_PER_TOKEN));
+		
+		if (ascii_run > 0):
+			tokens += int(ceil(float(ascii_run) / ASCII_PER_TOKEN));
 			ascii_run = 0;
-		if (code >= 0x4E00 && code <= 0x9FFF):
-			tokens += int(CHINESE_COEFF);
-		elif (code > 32):
+		
+		if (code <= 32):
+			continue;
+		
+		var is_cjk := (
+			(code >= 0x3400 && code <= 0x4DBF)
+			|| (code >= 0x4E00 && code <= 0x9FFF)
+			|| (code >= 0xF900 && code <= 0xFAFF)
+			|| (code >= 0x20000 && code <= 0x2EBEF)
+			|| (code >= 0x30000 && code <= 0x323AF)
+		);
+		
+		var is_emoji := (
+			(code >= 0x1F600 && code <= 0x1F64F)
+			|| (code >= 0x1F300 && code <= 0x1F5FF)
+			|| (code >= 0x1F680 && code <= 0x1F6FF)
+			|| (code >= 0x1F900 && code <= 0x1F9FF)
+			|| (code >= 0x1FA00 && code <= 0x1FA6F)
+			|| (code >= 0x1FA70 && code <= 0x1FAFF)
+			|| (code >= 0x2600 && code <= 0x26FF)
+			|| (code >= 0x2700 && code <= 0x27BF)
+		);
+
+		if (is_cjk):
 			tokens += 1;
-	if (ascii_run > 0) :
-		tokens += int(ceil(float(ascii_run)/ASCII_PER_TOKEN));
+		elif (is_emoji):
+			tokens += 2;
+		else:
+			tokens += 1;
+	
+	if (ascii_run > 0):
+		tokens += int(ceil(float(ascii_run) / ASCII_PER_TOKEN));
 	return tokens;

@@ -19,6 +19,7 @@ const HISTORY_SUMMARY_PREFIX : String = "[AgentContextSummary]\n";
 
 var api_adapter : AgentAPIAdapter;
 var tool_actuator : AgentToolActuator;
+@export
 var history_messages : Array[AgentMessage] = [];
 var pending_user_message : AgentConversationMessage = null;
 var pending_confirm_message : Array[AgentAssistantMessage] = [];
@@ -91,8 +92,6 @@ func has_unanswered_tool_calls() -> bool:
 
 func create_message_stream() -> AgentAssistantMessageStream:
 	var message_stream : AgentAssistantMessageStream = AgentAssistantMessageStream.new();
-	message_received.emit(message_stream);
-	assistant_message_received.emit(message_stream);
 	return message_stream;
 
 func compress_history(request_body : Callable) -> void:

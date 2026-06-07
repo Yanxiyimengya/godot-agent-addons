@@ -29,5 +29,5 @@ extends Resource;
 
 @export_category("Compression")
 @export var enable_compression : bool = true;
-@export var max_recent_messages : int = 2;
-@export var compression_token_threshold : int = 300;
+@export var max_recent_messages : int = 4;
+@export var compression_token_threshold : int = 5_0000;
